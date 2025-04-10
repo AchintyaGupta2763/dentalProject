@@ -183,7 +183,7 @@ def main():
                 st.markdown("### Find results")
 
                  # 2A) Add a dropdown to choose your percentage
-                percentage_options = ["95%", "85%", "75%", "65%", "50%", "35%", "25%", "15%"]
+                percentage_options = ["95%", "85%", "75%", "65%", "50%", "35%", "25%", "15%", "5%"]
                 selected_percentage = st.selectbox("Select percentage:", percentage_options)
 
                 if st.button("Calculate Total", use_container_width=True):
