@@ -66,6 +66,18 @@ def detect_objects(image_path, results_dict):
     results = model_detection(image_path)
     image = cv2.imread(image_path)
 
+    img_height, img_width = image.shape[:2]
+
+    # Reference dimensions and font scale
+    reference_width = 2344
+    reference_height = 1825
+    reference_font_scale = 1.5
+
+    # Compute relative font scale using area-based scaling
+    scale_factor = ((img_width * img_height) / (reference_width * reference_height)) ** 0.5
+    dynamic_font_scale = reference_font_scale * scale_factor
+    dynamic_font_scale = max(0.5, min(dynamic_font_scale, 3.0))  # Clamp to reasonable range
+
     text_location = 'y1'
     if 'classification_label' in results_dict and results_dict['classification_label'] == 'Mandible':
         text_location = 'y2'
@@ -95,6 +107,12 @@ def detect_objects(image_path, results_dict):
             mapped = 5.5 + (z / 2.0) * 1.3
             data['adjusted_width'] = mapped
 
+    # First draw all bounding boxes
+    for data in detection_data:
+        x1, y1, x2, y2 = data['x1'], data['y1'], data['x2'], data['y2']
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 100, 225), 12)
+
+    # Then draw text on top
     for data in detection_data:
         x1, y1, x2, y2 = data['x1'], data['y1'], data['x2'], data['y2']
         adjusted_width = data.get('adjusted_width', data['width_mm'])
@@ -103,12 +121,25 @@ def detect_objects(image_path, results_dict):
         current_text_y = y1 if text_location == 'y1' else y2
         current_text_y -= 10
 
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 100, 225), 12)
-        cv2.rectangle(image, (x1 + 30, current_text_y - 50), (x1 + 180, current_text_y + 20), (0, 0, 0), -1)
-        cv2.putText(image, label, (x1 + 40, current_text_y), cv2.FONT_HERSHEY_SIMPLEX, 1.8, (0, 255, 0), 5)
+        # Background rectangle
+        text_bg_top_left = (x1 + 30, current_text_y - 50)
+        text_bg_bottom_right = (x1 + 180, current_text_y + 20)
+        cv2.rectangle(image, text_bg_top_left, text_bg_bottom_right, (0, 0, 0), -1)
+
+        # Text on top
+        cv2.putText(
+            image,
+            label,
+            (x1 + 40, current_text_y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            dynamic_font_scale,
+            (0, 255, 0),
+            max(1, int(dynamic_font_scale * 2))
+        )
 
     _, encoded_image = cv2.imencode('.png', image)
     results_dict['detection_image'] = encoded_image
+
 
 def custom_round(val):
     whole = int(val)
@@ -123,7 +154,9 @@ def custom_round(val):
 
 def main():
     st.title('Teeth Classification and Length Estimator')
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+    with st.container(border = True):   
+        uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
     # Initialize session state
     if 'results_dict' not in st.session_state:
