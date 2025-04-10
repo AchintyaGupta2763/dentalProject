@@ -9,6 +9,7 @@ import io
 import statistics
 import pandas as pd
 
+st.set_page_config(page_title='SRM Dental', page_icon = "🦷", layout = 'wide', initial_sidebar_state = 'auto')
 # Conversion ratio from pixels to mm
 PIXEL_TO_MM_RATIO = 0.02479
 
@@ -153,6 +154,7 @@ def custom_round(val):
         return float(whole + 1)
 
 def main():
+
     st.title('Teeth Classification and Length Estimator')
 
     with st.container(border = True):   
